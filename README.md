@@ -10,5 +10,10 @@ Although it works on an RP2040 Zero it could be used on a Pi Pico but you may
 need to update the GPIO references.
 
 You can set a startup time to allow yourself time to get out of the range of
-the PIR. Delays can be set for the ON and OFF states so you can reduce the
-number of activations during regular PIR events.
+the PIR. A duration can be set to match the duration of the light/sound sequence
+as well as a 'snooze' delay to stop the relay being activated to quickly.
+
+Start-up Sequence  : Flashing green, flashing amber, flashing red
+Waiting for motion : Flashing blue
+Violet             : Relay active
+Red                : Duration+Snooze

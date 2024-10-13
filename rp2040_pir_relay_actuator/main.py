@@ -38,26 +38,46 @@ import machine
 import time
 import neopixel
 
-# Define some constants
+# Define hardware values
 LED_PIN=16               # Set pin number for onboard LED
 PIR_PIN=29               # User pin choice for PIR data
 RELAY1_PIN=28            # User pin choice for Relay #1 data
-STARTUP_TIME=20          # How long to wait before checking for PIR changes
+
+# Define some timings
+STARTUP_TIME=10          # How long to wait before checking for PIR changes
 RELAY1_TRIGGER_TIME=0.5  # How long to keep Relay #1 active when triggered
-PIR_ON_WAIT=30           # How long to stay in the ON state
+SEQUENCE_DURATION=10     # How long the light/sound sequence of prop lasts
+SNOOZE=10                # How long to wait before we want another activation
 PIR_OFF_WAIT=10          # How long to stay in the OFF state
+PIXEL_BRIGHTNESS=10      # Set brightness as a percentage
 
 # Define some colours
-COLOUR_RED=(64,0,0)
-COLOUR_GREEN=(0,64,0)
-COLOUR_BLUE=(0,0,64)
-COLOUR_ORANGE=(64,46,0)
+COLOUR_RED=(255,0,0)
+COLOUR_GREEN=(0,255,0)
+COLOUR_BLUE=(0,0,255)
+COLOUR_ORANGE=(255,128,0)
+COLOUR_VIOLET=(255,0,255)
+COLOUR_CLEAR=(0,0,0)
+
+def pixelColour(baseColour,brightness=20):
+    brightness=brightness/100
+    if brightness>0 and brightness<=1:
+        adjustedColour=tuple([int(x*brightness) for x in baseColour])
+    else:
+        adjustedColour=tuple([int(x*0.2) for x in baseColour])
+    pixel.fill(adjustedColour)
+    pixel.write()    
 
 # Define function to blink pixel
-def blink(pixel,colour,duration,delay):
+def blink(pixel,baseColour,brightness,duration,delay):
+    brightness=brightness/100
+    if brightness>0 and brightness<1:
+        adjustedColour=tuple([int(x*brightness) for x in baseColour])
+    else:
+        adjustedColour=baseColour
     start = time.time()
     while time.time()-start<duration:
-        pixel.fill(colour)
+        pixel.fill(adjustedColour)
         pixel.write()
         time.sleep(delay/2)
         pixel.fill((0,0,0))
@@ -77,59 +97,47 @@ relay1.low()
 print("You have %s secounds to clear the area!" % STARTUP_TIME)
 
 # Give user time to leave the area
-blink(pixel,COLOUR_GREEN,STARTUP_TIME/3,1)
+blink(pixel,COLOUR_GREEN,PIXEL_BRIGHTNESS,STARTUP_TIME/3,1)
 # Orange LED
-blink(pixel,COLOUR_ORANGE,STARTUP_TIME/3,0.6)
+blink(pixel,COLOUR_ORANGE,PIXEL_BRIGHTNESS,STARTUP_TIME/3,0.6)
 # Red LED
-blink(pixel,COLOUR_RED,STARTUP_TIME/3,0.2)
+blink(pixel,COLOUR_RED,PIXEL_BRIGHTNESS,STARTUP_TIME/3,0.2)
 
 while pir.value()==1:
     print("Waiting for PIR to settle")
-    pixel.fill(COLOUR_RED)
-    pixel.write()
+    pixelColour(COLOUR_RED,PIXEL_BRIGHTNESS)
     time.sleep(1)
-    pixel.fill(COLOUR_BLUE)
-    pixel.write()
+    pixelColour(COLOUR_BLUE,PIXEL_BRIGHTNESS)
     time.sleep(1)
 
-print("Now waiting for PIR")
-
-pixel.fill(COLOUR_BLUE)
-pixel.write()
-
-pirCurrentState=0
-pirPreviousState=0
+print("Now waiting for motion")
 
 while True:
-    
-    pirCurrentState=pir.value()
 
-    if pirCurrentState!=pirPreviousState:
-        
-        if pirCurrentState==1:
-          print("PIR ON")
-          pixel.fill(COLOUR_RED)
-          pixel.write()
+    pirState=pir.value()
 
-          # Trigger Relay #1
-          print("  Trigger Relay #1")
-          relay1.high()
-          time.sleep(RELAY1_TRIGGER_TIME)
-          relay1.low()
+    if pirState==1:
+        print("PIR ON")
 
-          # Wait
-          print("  Wait %s seconds" % PIR_ON_WAIT)
-          time.sleep(PIR_ON_WAIT)
-        else:
-          print("PIR OFF")
-          pixel.fill(COLOUR_BLUE)
-          pixel.write()
-          relay1.low()
-          
-          # Wait
-          print("  Wait %s seconds" % PIR_OFF_WAIT)
-          time.sleep(PIR_OFF_WAIT)
- 
-          print("Wait for PIR")
+        # Trigger Relay #1
+        print("  Trigger Relay #1 for %s seconds" % RELAY1_TRIGGER_TIME)
+        pixelColour(COLOUR_VIOLET,PIXEL_BRIGHTNESS)
+        relay1.high()
+        time.sleep(RELAY1_TRIGGER_TIME)
+        relay1.low()
+        pixelColour(COLOUR_RED,PIXEL_BRIGHTNESS)
 
-        pirPreviousState=pirCurrentState
+        # Wait for light/sound sequence to finish
+        print("  Wait %s seconds" % SEQUENCE_DURATION)
+        time.sleep(SEQUENCE_DURATION)
+
+        # Snooze
+        print("  Snooze for %s seconds" % SNOOZE)
+        time.sleep(SNOOZE)
+
+        print("Now waiting for motion")
+
+    pixelColour(COLOUR_BLUE,PIXEL_BRIGHTNESS)
+    time.sleep(0.5)
+    pixelColour(COLOUR_CLEAR)
+    time.sleep(0.2)
