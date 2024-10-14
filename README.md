@@ -14,6 +14,7 @@ the PIR. A duration can be set to match the duration of the light/sound sequence
 as well as a 'snooze' delay to stop the relay being activated to quickly.
 
 Start-up Sequence  : Flashing green, flashing amber, flashing red
-Waiting for motion : Flashing blue
-Violet             : Relay active
-Red                : Duration+Snooze
+Flashing blue      : Waiting for motion
+Violet             : Violet
+Red                : PIR active, waiting for duration + snooze delays
+Flashing red       : PIR activated, waiting for minimum delay to pass

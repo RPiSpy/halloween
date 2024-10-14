@@ -8,7 +8,7 @@
 #  RP2040 Zero PIR Relay Activator
 #
 # Author : Matt Hawkins
-# Date   : 13/10/2024
+# Date   : 14/10/2024
 #
 # https://www.raspberrypi-spy.co.uk/
 #
@@ -40,16 +40,18 @@ import neopixel
 
 # Define hardware values
 LED_PIN=16               # Set pin number for onboard LED
-PIR_PIN=29               # User pin choice for PIR data
-RELAY1_PIN=28            # User pin choice for Relay #1 data
+PIR_PIN=29               # GPIO PIR data
+RLY1_PIN=28              # GPIO for Relay #1 data
+RLY1_ON_STATE=0          # 1 relay is active High
+                         # 0 relay is active Low
 
 # Define some timings
 STARTUP_TIME=10          # How long to wait before checking for PIR changes
-RELAY1_TRIGGER_TIME=0.5  # How long to keep Relay #1 active when triggered
+RLY1_TRIGGER_TIME=0.5    # How long to keep Relay #1 active when triggered
 SEQUENCE_DURATION=10     # How long the light/sound sequence of prop lasts
 SNOOZE=10                # How long to wait before we want another activation
-PIR_OFF_WAIT=10          # How long to stay in the OFF state
-PIXEL_BRIGHTNESS=10      # Set brightness as a percentage
+PIR_ACTIVE_DELAY=8       # Minimum time PIR must be active for activation
+LED_BRIGHTNESS=10        # Set brightness as a percentage
 
 # Define some colours
 COLOUR_RED=(255,0,0)
@@ -57,19 +59,20 @@ COLOUR_GREEN=(0,255,0)
 COLOUR_BLUE=(0,0,255)
 COLOUR_ORANGE=(255,128,0)
 COLOUR_VIOLET=(255,0,255)
+COLOUR_YELLOW=(255,255,0)
 COLOUR_CLEAR=(0,0,0)
 
-def pixelColour(baseColour,brightness=20):
+def ledColour(baseColour,brightness=20):
     brightness=brightness/100
     if brightness>0 and brightness<=1:
         adjustedColour=tuple([int(x*brightness) for x in baseColour])
     else:
         adjustedColour=tuple([int(x*0.2) for x in baseColour])
-    pixel.fill(adjustedColour)
-    pixel.write()    
+    led.fill(adjustedColour)
+    led.write()  
 
-# Define function to blink pixel
-def blink(pixel,baseColour,brightness,duration,delay):
+# Define function to blink led
+def blink(led,baseColour,brightness,duration,delay):
     brightness=brightness/100
     if brightness>0 and brightness<1:
         adjustedColour=tuple([int(x*brightness) for x in baseColour])
@@ -77,37 +80,36 @@ def blink(pixel,baseColour,brightness,duration,delay):
         adjustedColour=baseColour
     start = time.time()
     while time.time()-start<duration:
-        pixel.fill(adjustedColour)
-        pixel.write()
+        led.fill(adjustedColour)
+        led.write()
         time.sleep(delay/2)
-        pixel.fill((0,0,0))
-        pixel.write()        
+        led.fill((0,0,0))
+        led.write()        
         time.sleep(delay/2)
 
 # Setup neopixel
-pixel = neopixel.NeoPixel(machine.Pin(LED_PIN), 1)
+led = neopixel.NeoPixel(machine.Pin(LED_PIN), 1)
 
 # Setup PIR
-pir = machine.Pin(PIR_PIN, machine.Pin.IN,machine.Pin.PULL_DOWN)
+pir = machine.Pin(PIR_PIN, machine.Pin.IN)
 
-# Setup and close relay
-relay1 = machine.Pin(RELAY1_PIN, machine.Pin.OUT)
-relay1.low()
+# Setup relay #1
+relay1 = machine.Pin(RLY1_PIN, machine.Pin.OUT, value=not RLY1_ON_STATE)
 
 print("You have %s secounds to clear the area!" % STARTUP_TIME)
 
 # Give user time to leave the area
-blink(pixel,COLOUR_GREEN,PIXEL_BRIGHTNESS,STARTUP_TIME/3,1)
+blink(led,COLOUR_GREEN,LED_BRIGHTNESS,STARTUP_TIME/3,1)
 # Orange LED
-blink(pixel,COLOUR_ORANGE,PIXEL_BRIGHTNESS,STARTUP_TIME/3,0.6)
+blink(led,COLOUR_ORANGE,LED_BRIGHTNESS,STARTUP_TIME/3,0.6)
 # Red LED
-blink(pixel,COLOUR_RED,PIXEL_BRIGHTNESS,STARTUP_TIME/3,0.2)
+blink(led,COLOUR_RED,LED_BRIGHTNESS,STARTUP_TIME/3,0.2)
 
 while pir.value()==1:
     print("Waiting for PIR to settle")
-    pixelColour(COLOUR_RED,PIXEL_BRIGHTNESS)
+    ledColour(COLOUR_RED,LED_BRIGHTNESS)
     time.sleep(1)
-    pixelColour(COLOUR_BLUE,PIXEL_BRIGHTNESS)
+    ledColour(COLOUR_BLUE,LED_BRIGHTNESS)
     time.sleep(1)
 
 print("Now waiting for motion")
@@ -117,15 +119,18 @@ while True:
     pirState=pir.value()
 
     if pirState==1:
-        print("PIR ON")
+        print("PIR active but lets wait %s seconds" % PIR_ACTIVE_DELAY)
+        blink(led,COLOUR_RED,LED_BRIGHTNESS,PIR_ACTIVE_DELAY,0.1)
+        pirState=pir.value()
+
+    if pirState==1:
+        print("PIR ACTIVE")
 
         # Trigger Relay #1
-        print("  Trigger Relay #1 for %s seconds" % RELAY1_TRIGGER_TIME)
-        pixelColour(COLOUR_VIOLET,PIXEL_BRIGHTNESS)
-        relay1.high()
-        time.sleep(RELAY1_TRIGGER_TIME)
-        relay1.low()
-        pixelColour(COLOUR_RED,PIXEL_BRIGHTNESS)
+        print("  Trigger Relay #1 for %s seconds" % RLY1_TRIGGER_TIME)
+        ledColour(COLOUR_VIOLET,LED_BRIGHTNESS)
+         
+        ledColour(COLOUR_RED,LED_BRIGHTNESS)
 
         # Wait for light/sound sequence to finish
         print("  Wait %s seconds" % SEQUENCE_DURATION)
@@ -133,11 +138,11 @@ while True:
 
         # Snooze
         print("  Snooze for %s seconds" % SNOOZE)
-        time.sleep(SNOOZE)
+        blink(led,COLOUR_RED,LED_BRIGHTNESS,SNOOZE,1)
 
         print("Now waiting for motion")
 
-    pixelColour(COLOUR_BLUE,PIXEL_BRIGHTNESS)
+    ledColour(COLOUR_BLUE,LED_BRIGHTNESS)
     time.sleep(0.5)
-    pixelColour(COLOUR_CLEAR)
+    ledColour(COLOUR_CLEAR)
     time.sleep(0.2)
