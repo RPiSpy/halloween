@@ -21,12 +21,15 @@ to load files onto the device using a client such as Thonny or VSCode.
 * Copy main.py to device
 
 ## NeoPixels
-* Gnd
-* Data
-* Vcc
+* Gnd  - Connect to Gnd pin
+* Data - Connect to GP28
+* Vcc  - Connect to 5V
 ## Button
-* A - Connect to Ground
-* B - Connect to GPIOXX
+* A - Connect to Gnd pin
+* B - Connect to GP29
+
+## RP2040
+Power via a suitable USB power source.
 
 # Usage
 * Attach all hardware items
