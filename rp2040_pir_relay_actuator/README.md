@@ -33,12 +33,12 @@ to load files onto the device using a client such as Thonny or VSCode.
 * Copy main.py to device
 ## PIR
 * Gnd  - Connect to a Gnd pin
-* Data - Connect to GPIO28
+* Data - Connect to GP28
 * Vcc  - Connect to 3.3V or 5V (check PIR specifications)
 
 ## Relay
 * Gnd    - Connect to a Gnd pin
-* IN1    - Connect to GPIO29
+* IN1    - Connect to GP29
 * Vcc    - Connect to 3.3V or 5V (check relay specifications)
 * Common - Connect to prop button wire
 * NO     - Connect to prop button wire
