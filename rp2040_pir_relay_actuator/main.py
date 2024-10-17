@@ -8,7 +8,7 @@
 #  RP2040 Zero PIR Relay Activator
 #
 # Author : Matt Hawkins
-# Date   : 14/10/2024
+# Date   : 17/10/2024
 #
 # https://www.raspberrypi-spy.co.uk/
 #
@@ -129,7 +129,9 @@ while True:
         # Trigger Relay #1
         print("  Trigger Relay #1 for %s seconds" % RLY1_TRIGGER_TIME)
         ledColour(COLOUR_VIOLET,LED_BRIGHTNESS)
-         
+        relay1.on()
+        time.sleep(RLY1_TRIGGER_TIME)
+        relay1.off()
         ledColour(COLOUR_RED,LED_BRIGHTNESS)
 
         # Wait for light/sound sequence to finish
