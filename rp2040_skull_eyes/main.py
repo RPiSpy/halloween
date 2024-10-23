@@ -8,7 +8,7 @@
 #  RP2040 Skull Eyes
 #
 # Author : Matt Hawkins
-# Date   : 17/10/2024
+# Date   : 23/10/2024
 #
 # https://www.raspberrypi-spy.co.uk/
 #
@@ -37,6 +37,8 @@
 import machine
 import time
 import neopixel
+import _thread
+import random
 
 def getColour(baseColour,brightness=20):
     # Take a colour tuple and adjust the values using the brightness value
@@ -47,10 +49,24 @@ def getColour(baseColour,brightness=20):
         adjustedColour=baseColour
     return adjustedColour
 
+def servo_rotate():
+    servo.duty_u16(SRV_MID_DUTY)    
+    while True:
+      time.sleep(random.randint(1, 3))
+      duty = int(SRV_MIN_DUTY+((SRV_MAX_DUTY-SRV_MIN_DUTY)*random.random()))      
+      servo.duty_u16(duty)    
+
 # Define hardware values
 LED_PIN=16               # Set pin number for onboard LED
-NEO_PIN=28               # NeoPixels
 BTN_PIN=29               # Momentary switch
+NEO_PIN=28               # NeoPixels
+NEO_BPP=3                # 3 for RGB, 4 for RGBW
+
+SRV_PIN=27               # Servo
+SRV_FRQ=50
+SRV_MAX_DUTY=8100
+SRV_MIN_DUTY=1700
+SRV_MID_DUTY=int((SRV_MIN_DUTY+SRV_MAX_DUTY)/2)
 
 # Define some timings
 NEO_BRIGHTNESS=20        # Set brightness as a percentage
@@ -82,8 +98,12 @@ COLOUR_WHEEL = [
 # Setup onboard LED
 onboardLed = neopixel.NeoPixel(machine.Pin(LED_PIN), 1)
 
-# Setup neopixels
-pixels = neopixel.NeoPixel(machine.Pin(NEO_PIN), 2, bpp=4)   # RGBW
+# Setup two neopixels
+pixels = neopixel.NeoPixel(machine.Pin(NEO_PIN), 2, bpp=NEO_BPP)
+
+servo = machine.PWM(machine.Pin(SRV_PIN))
+servo.freq(SRV_FRQ)
+servo.duty_u16(SRV_MID_DUTY)
 
 # Setup mode button using interupt with debouncing
 mode = 1
@@ -107,6 +127,8 @@ brightness = NEO_BRIGHTNESS
 # Turn on/off onboard LED
 onboardLed.fill(getColour(COLOUR_BLUE,LED_BRIGHTNESS))
 onboardLed.write()  
+
+servo_thread = _thread.start_new_thread(servo_rotate, ())
 
 # Main loop
 while True:
