@@ -5,10 +5,10 @@
 # /_/|_/_/  /_/___/ .__/\_, /  
 #                /_/   /___/   
 #
-#  RP2040 Skull Eyes
+#  RP2040 Skull Eyes 
 #
 # Author : Matt Hawkins
-# Date   : 23/10/2024
+# Date   : 24/10/2024
 #
 # https://www.raspberrypi-spy.co.uk/
 #
@@ -49,23 +49,42 @@ def getColour(baseColour,brightness=20):
         adjustedColour=baseColour
     return adjustedColour
 
+def callback(mode_button):
+    global mode, debounce_time
+    if (time.ticks_ms()-debounce_time) > 500:
+        mode=mode+1
+        if mode>4:
+            mode=mode = 1
+        print("Mode: "+ str(mode))
+        debounce_time=time.ticks_ms()
+
 def servo_rotate():
-    servo.duty_u16(SRV_MID_DUTY)    
+    servo.duty_u16(SRV_MID_DUTY)
+    
+    max = SRV_MID_DUTY+SRV_END_STOP
+    min = SRV_MID_DUTY-SRV_END_STOP
+    
     while True:
       time.sleep(random.randint(1, 3))
-      duty = int(SRV_MIN_DUTY+((SRV_MAX_DUTY-SRV_MIN_DUTY)*random.random()))      
+      duty = random.randint(min, max)      
       servo.duty_u16(duty)    
 
-# Define hardware values
+# Define Pins that hardware is connected to
 LED_PIN=16               # Set pin number for onboard LED
 BTN_PIN=29               # Momentary switch
-NEO_PIN=28               # NeoPixels
+NEO_PIN=15               # NeoPixels
+SRV_PIN=14               # Servo
+
+# Define some parameters for hardware
 NEO_BPP=3                # 3 for RGB, 4 for RGBW
 
-SRV_PIN=27               # Servo
-SRV_FRQ=50
-SRV_MAX_DUTY=8100
-SRV_MIN_DUTY=1700
+
+
+# Servo values for SG90
+SRV_FRQ=50               # Pulse frequency of servo
+SRV_MAX_DUTY=8500        # Previously measured value
+SRV_MIN_DUTY=1700        # Previously measured value
+SRV_END_STOP=3000        # Duty either side of mid point
 SRV_MID_DUTY=int((SRV_MIN_DUTY+SRV_MAX_DUTY)/2)
 
 # Define some timings
@@ -97,38 +116,27 @@ COLOUR_WHEEL = [
 
 # Setup onboard LED
 onboardLed = neopixel.NeoPixel(machine.Pin(LED_PIN), 1)
+onboardLed.fill(getColour(COLOUR_BLUE,LED_BRIGHTNESS))
+onboardLed.write()  
 
 # Setup two neopixels
 pixels = neopixel.NeoPixel(machine.Pin(NEO_PIN), 2, bpp=NEO_BPP)
 
+# Setup mode button using interupt with debouncing
+mode = 1
+debounce_time = 0
+mode_button = machine.Pin(BTN_PIN, machine.Pin.IN, machine.Pin.PULL_UP)
+mode_button.irq(trigger=machine.Pin.IRQ_FALLING, handler=callback)
+
+# Setup servo
 servo = machine.PWM(machine.Pin(SRV_PIN))
 servo.freq(SRV_FRQ)
 servo.duty_u16(SRV_MID_DUTY)
 
-# Setup mode button using interupt with debouncing
-mode = 1
-mode_button = machine.Pin(BTN_PIN, machine.Pin.IN, machine.Pin.PULL_UP)
-debounce_time = 0
-def callback(mode_button):
-    global mode, debounce_time
-    if (time.ticks_ms()-debounce_time) > 500:
-        mode=mode+1
-        if mode>4:
-            mode=mode = 1
-        print("Mode: "+ str(mode))
-        debounce_time=time.ticks_ms()
-
-mode_button.irq(trigger=machine.Pin.IRQ_FALLING, handler=callback)
-print("Mode: "+ str(mode))
-
-# Default NeoPixel brightness
-brightness = NEO_BRIGHTNESS
-
-# Turn on/off onboard LED
-onboardLed.fill(getColour(COLOUR_BLUE,LED_BRIGHTNESS))
-onboardLed.write()  
-
+# Start servo function to randomly move servo position
 servo_thread = _thread.start_new_thread(servo_rotate, ())
+
+print("Mode: "+ str(mode))
 
 # Main loop
 while True:
@@ -138,16 +146,16 @@ while True:
     while mode==1:
         for index in range(16,256):
             colour=(index,0,0,0)
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep_ms(10)
             if mode!=1:
                 break
         for index in range(256,16,-1):
             colour=(index,0,0,0)
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep_ms(10)
             if mode!=1:
@@ -158,16 +166,16 @@ while True:
     while mode==2:
         for index in range(16,256):
             colour=(0,index,0,0)
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep_ms(10)
             if mode!=2:
                 break
         for index in range(256,16,-1):
             colour=(0,index,0,0)
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep_ms(10)
             if mode!=2:
@@ -177,8 +185,8 @@ while True:
     # Break out of loop if mode changes
     while mode==3:
         for colour in COLOUR_WHEEL:    
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep(1)
             if mode!=3:
@@ -188,8 +196,8 @@ while True:
     # Break out of loop if mode changes
     while mode==4:
         for colour in [COLOUR_GREEN,COLOUR_RED]:    
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep(1)
             if mode!=4:
@@ -200,16 +208,16 @@ while True:
     while mode==5:
         for index in range(0,256):
             colour=(index,255-index,0,0)
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep_ms(10)
             if mode!=5:
                 break
         for index in range(0,256):
             colour=(255-index,index,0,0)
-            pixels[0] = getColour(colour, brightness)
-            pixels[1] = getColour(colour, brightness)
+            pixels[0] = getColour(colour, NEO_BRIGHTNESS)
+            pixels[1] = getColour(colour, NEO_BRIGHTNESS)
             pixels.write()
             time.sleep_ms(10)
             if mode!=5:
