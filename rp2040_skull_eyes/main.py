@@ -6,14 +6,17 @@
 #                /_/   /___/   
 #
 #  RP2040 Skull Eyes 
-#
+# 
 # Author : Matt Hawkins
-# Date   : 24/10/2024
+# Date   : 19/11/2025
+#
+# Connect Servo to GPIO14
+# Connect Button 1 to GPIO12 (changes eye mode)
 #
 # https://www.raspberrypi-spy.co.uk/
 #
 # The MIT License (MIT)
-# Copyright 2024 Matt Hawkins
+# Copyright 2025 Matt Hawkins
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the “Software”), to deal
@@ -60,36 +63,40 @@ def callback(mode_button):
 
 def servo_rotate():
     servo.duty_u16(SRV_MID_DUTY)
-    
-    max = SRV_MID_DUTY+SRV_END_STOP
-    min = SRV_MID_DUTY-SRV_END_STOP
-    
+
+    max = SRV_MAX_DUTY
+    min = SRV_MIN_DUTY
+
     while True:
       time.sleep(random.randint(1, 3))
-      duty = random.randint(min, max)      
-      servo.duty_u16(duty)    
+      duty = random.randint(min, max)
+      servo.duty_u16(duty)
 
 # Define Pins that hardware is connected to
 LED_PIN=16               # Set pin number for onboard LED
-BTN_PIN=29               # Momentary switch
 NEO_PIN=15               # NeoPixels
 SRV_PIN=14               # Servo
+BTN_PIN=12               # Momentary switch
 
 # Define some parameters for hardware
 NEO_BPP=3                # 3 for RGB, 4 for RGBW
 
-
-
 # Servo values for SG90
 SRV_FRQ=50               # Pulse frequency of servo
-SRV_MAX_DUTY=8500        # Previously measured value
-SRV_MIN_DUTY=1700        # Previously measured value
-SRV_END_STOP=3000        # Duty either side of mid point
+
+# SG90
+#SRV_MIN_DUTY=1638
+#SRV_MAX_DUTY=8192
+
+# MG996R
+SRV_MIN_DUTY=3277
+SRV_MAX_DUTY=6554
+
 SRV_MID_DUTY=int((SRV_MIN_DUTY+SRV_MAX_DUTY)/2)
 
 # Define some timings
-NEO_BRIGHTNESS=20        # Set brightness as a percentage
-LED_BRIGHTNESS=10        # Set brightness as a percentage
+NEO_BRIGHTNESS=20        # Set brightness as a percentage for eyes
+LED_BRIGHTNESS=2         # Set brightness as a percentage for onboard LED
 
 # Define some colours
 COLOUR_RED=(255,0,0,0)
