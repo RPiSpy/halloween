@@ -8,10 +8,12 @@
 #  RP2040 Skull Eyes 
 # 
 # Author : Matt Hawkins
-# Date   : 19/11/2025
+# Date   : 25/10/2026
 #
-# Connect Servo to GPIO14
+# Connect Servo 1 to GPIO14
+# Connect Servo 2 to GPIO15
 # Connect Button 1 to GPIO12 (changes eye mode)
+# Connect Neopixels to GPIO26
 #
 # https://www.raspberrypi-spy.co.uk/
 #
@@ -56,43 +58,56 @@ def callback(mode_button):
     global mode, debounce_time
     if (time.ticks_ms()-debounce_time) > 500:
         mode=mode+1
-        if mode>4:
+        if mode>5:
             mode=mode = 1
         print("Mode: "+ str(mode))
         debounce_time=time.ticks_ms()
 
 def servo_rotate():
-    servo.duty_u16(SRV_MID_DUTY)
-
-    max = SRV_MAX_DUTY
-    min = SRV_MIN_DUTY
+    # Set servos to mid position
+    servo1.duty_u16(SRV1_MID_DUTY)
+    servo2.duty_u16(SRV2_MID_DUTY)
 
     while True:
-      time.sleep(random.randint(1, 3))
-      duty = random.randint(min, max)
-      servo.duty_u16(duty)
+        # Random delay
+        time.sleep(random.randint(1, 2))
+      
+        # Random movement of servo 1
+        if random.choice([True, False]):
+            # Move servo 1
+            duty1 = random.randint(SRV1_MIN_DUTY, SRV1_MAX_DUTY)
+            servo1.duty_u16(duty1)
+          
+        # Move servo 2
+        duty2 = random.randint(SRV2_MIN_DUTY, SRV2_MAX_DUTY)
+        servo2.duty_u16(duty2)
+
 
 # Define Pins that hardware is connected to
 LED_PIN=16               # Set pin number for onboard LED
-NEO_PIN=15               # NeoPixels
-SRV_PIN=14               # Servo
+SRV1_PIN=14              # Servo 1 - Head
+SRV2_PIN=15              # Servo 2 - Jaw
+NEO_PIN=26               # NeoPixels
 BTN_PIN=12               # Momentary switch
 
 # Define some parameters for hardware
 NEO_BPP=3                # 3 for RGB, 4 for RGBW
 
+# Servo values for MG996R
+SRV1_FRQ=50               # Pulse frequency of servo
 # Servo values for SG90
-SRV_FRQ=50               # Pulse frequency of servo
-
-# SG90
-#SRV_MIN_DUTY=1638
-#SRV_MAX_DUTY=8192
+SRV2_FRQ=50               # Pulse frequency of servo
 
 # MG996R
-SRV_MIN_DUTY=3277
-SRV_MAX_DUTY=6554
+SRV1_MIN_DUTY=3277
+SRV1_MAX_DUTY=6554
 
-SRV_MID_DUTY=int((SRV_MIN_DUTY+SRV_MAX_DUTY)/2)
+# SG90
+SRV2_MIN_DUTY=1638
+SRV2_MAX_DUTY=8192
+
+SRV1_MID_DUTY=int((SRV1_MIN_DUTY+SRV1_MAX_DUTY)/2)
+SRV2_MID_DUTY=int((SRV2_MIN_DUTY+SRV2_MAX_DUTY)/2)
 
 # Define some timings
 NEO_BRIGHTNESS=20        # Set brightness as a percentage for eyes
@@ -135,16 +150,20 @@ debounce_time = 0
 mode_button = machine.Pin(BTN_PIN, machine.Pin.IN, machine.Pin.PULL_UP)
 mode_button.irq(trigger=machine.Pin.IRQ_FALLING, handler=callback)
 
-# Setup servo
-servo = machine.PWM(machine.Pin(SRV_PIN))
-servo.freq(SRV_FRQ)
-servo.duty_u16(SRV_MID_DUTY)
+# Setup servo 1
+servo1 = machine.PWM(machine.Pin(SRV1_PIN))
+servo1.freq(SRV1_FRQ)
+servo1.duty_u16(SRV1_MID_DUTY)
 
-# Start servo function to randomly move servo position
+# Setup servo 2
+servo2 = machine.PWM(machine.Pin(SRV2_PIN))
+servo2.freq(SRV2_FRQ)
+servo2.duty_u16(SRV2_MID_DUTY)
+
+# Start servo function to randomly move servo positions
 servo_thread = _thread.start_new_thread(servo_rotate, ())
 
 print("Mode: "+ str(mode))
-
 # Main loop
 while True:
 
